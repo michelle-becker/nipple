@@ -328,8 +328,42 @@ describe('Nipple', function () {
             });
 
             server.listen(0, function () {
-
+                //Fails with nipple stream payload.
                 Nipple.request('post', 'http://localhost:' + server.address().port, { redirects: 1, payload: Nipple.toReadableStream(payload) }, function (err, res) {
+
+                    expect(err).to.not.exist;
+                    Nipple.read(res, function (err, body) {
+
+                        expect(err).to.not.exist;
+                        expect(body.toString()).to.equal(payload);
+                        server.close();
+                        done();
+                    });
+                });
+            });
+        });
+
+        it('handles redirections with POST payload', function (done) {
+
+            var gen = 0;
+            var server = Http.createServer(function (req, res) {
+
+                if (!gen++) {
+                    res.writeHead(307, { 'Location': '/' });
+                    res.end();
+                }
+                else {
+                    res.writeHead(200, { 'Content-Type': 'text/plain' });
+                    Nipple.read(req, function (err, res2) {
+
+                        res.end(res2);
+                    });
+                }
+            });
+
+            server.listen(0, function () {
+
+                Nipple.request('post', 'http://localhost:' + server.address().port, { redirects: 1, payload: payload }, function (err, res) {
 
                     expect(err).to.not.exist;
                     Nipple.read(res, function (err, body) {
